@@ -12,7 +12,7 @@ interface LiveNumberProps {
 }
 
 /**
- * A live reading. It counts up the first time it is seen, then re-draws only
+ * A live reading. It counts up the first time it is seen, then re-inks only
  * the digits that change. The real value renders without JS.
  */
 export function LiveNumber({ value, format, className }: LiveNumberProps) {

@@ -2,7 +2,18 @@
 
 <!-- impeccable:product-schema 1 -->
 
-## Rebrand in progress (2026-10-14): Lava Pit ($LAVA)
+## Rebrand (2026-10-31): Cauldron ($BREW), Halloween
+
+The public site was redrawn as **Cauldron ($BREW)**: a moonlit hill on Halloween night, an iron cauldron over a log fire, graves, jack-o'-lanterns, bats. Engine, bot, hooks, contracts, thresholds and `/memex` logic are unchanged; only UI and copy changed.
+
+- Mascot: **Hex**, a black cat sitting on the cauldron rim; it is the bot (referred to as "it").
+- The cauldron is 0x…dEaD. Odd runs (0.01 ETH) are **tricks**: buy $BREW, throw it in the cauldron. Even runs (0.02 ETH) are **treats**: fees go in **the treat bag** (project wallet).
+- Fee escrow = **the flask** (potion meter). Burn log = **the grimoire**.
+- Fonts: Grenze Gotisch (display), Hanken Grotesk (body + uppercase labels), JetBrains Mono (numbers, addresses), Reenie Beanie (Hex's hand notes).
+- Not live yet: $BREW needs its own Pons launch; the on-chain name/ticker of an existing token cannot change.
+- Everything below (Lava Pit, Black Void) describes earlier brands.
+
+## Previous rebrand (2026-10-14): Lava Pit ($LAVA)
 
 The public site was redrawn as **Lava Pit ($LAVA)**, a 2D pixel mine cut open from the side (block-game feel, but no Minecraft names, characters, logos or textures). Engine, API, tokenomics and `/memex` are unchanged.
 

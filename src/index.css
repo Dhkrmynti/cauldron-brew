@@ -2,61 +2,71 @@
 @import "./fonts.css";
 
 /*
-  LAVA PIT: the bottom of a pixel mine. Cave stone, a grass line far above, a lava pit
-  that really burns, and Brr, a penguin miner, working the ledge. Square corners, stepped motion.
+  CAULDRON ($BREW): a moonlit hill on Halloween night. An iron cauldron bubbles over a log fire,
+  Hex the black cat sits on its rim, and everything thrown in is gone for good (0x…dEaD).
+  Three inks, one meaning each: pumpkin = live and actionable, brew green = the trick (burn),
+  candy violet = the treat (keep runs). Parchment pages carry the dense readings.
 */
 @theme {
-  /* the cave */
-  --color-night: #15110e;
-  --color-night-2: #1d1714;
-  --color-panel: #2a221d;
-  --color-panel-line: #3e332b;
-  --color-star: #f4ecdc;
-  --color-star-dim: #b5a896;
-  /* signs and paper (full log drawer) */
-  --color-paper: #efe6d4;
-  --color-paper-shade: #ddd1ba;
-  --color-grid: #c47f1c;
-  --color-pen: #2a1d14;
-  --color-pen-soft: #6b5a48;
-  --color-marker: #d9420f;
-  --color-marker-deep: #8f2108;
-  /* lava: live and actionable only */
-  --color-ring: #ff8a1f;
-  --color-ring-hot: #ffe066;
-  /* the chest: the keep runs, ETH ore blue */
-  --color-fuel: #7fdcf0;
-  --color-fuel-ink: #1f6f86;
-  /* the surface */
-  --color-grass: #5fa83b;
-  --color-dirt: #6b4a2f;
+  /* the night */
+  --color-night: #0c0910;
+  --color-night-2: #140f1b;
+  --color-panel: #1b1424;
+  --color-panel-line: #33284a;
+  --color-bone: #f3eadb;
+  --color-bone-dim: #a99cb8;
+  /* parchment (grimoire pages, the drawer) */
+  --color-parch: #ecdfc2;
+  --color-parch-shade: #dccba6;
+  --color-ink: #2a1a12;
+  --color-ink-soft: #6e5640;
+  --color-blood: #a8261b;
+  /* signal inks */
+  --color-pumpkin: #ff7518;
+  --color-pumpkin-hot: #ffb347;
+  --color-brew: #9cf05a;
+  --color-brew-deep: #2f7a22;
+  --color-treat: #c88bff;
+  --color-treat-ink: #6b2fa8;
+  --color-moon: #f6efd0;
 
-  /* legacy names used by the operator panel, remapped into this world */
-  --color-soot: #15110e;
-  --color-char: #1d1714;
-  --color-wood: #2a221d;
-  --color-bark: #3e332b;
-  --color-ember: #ff8a1f;
-  --color-flame: #ff8a1f;
-  --color-hot: #efe6d4;
-  --color-ash: #b5a896;
-  --color-ash-light: #f4ecdc;
-  --color-plaque: #efe6d4;
-  --color-plaque-ink: #2a1d14;
-  --color-cold: #7fdcf0;
+  /* names kept for shared components (log drawer) */
+  --color-star: #f3eadb;
+  --color-star-dim: #a99cb8;
+  --color-paper: #ecdfc2;
+  --color-pen: #2a1a12;
+  --color-pen-soft: #6e5640;
+  --color-marker: #a8261b;
+  --color-ring: #ff7518;
+  --color-ring-hot: #ffb347;
+  --color-fuel: #c88bff;
+  --color-fuel-ink: #6b2fa8;
 
-  --font-display: "Pixelify Sans", "Courier New", monospace;
-  --font-body: "Space Grotesk Variable", system-ui, sans-serif;
+  /* legacy names used by the operator panel (/memex), remapped into this world */
+  --color-soot: #0c0910;
+  --color-char: #140f1b;
+  --color-wood: #1b1424;
+  --color-bark: #33284a;
+  --color-ember: #ff7518;
+  --color-flame: #ff7518;
+  --color-hot: #f3eadb;
+  --color-ash: #a99cb8;
+  --color-ash-light: #d9cfe3;
+  --color-plaque: #ecdfc2;
+  --color-plaque-ink: #2a1a12;
+  --color-cold: #c88bff;
+
+  --font-display: "Grenze Gotisch Variable", "UnifrakturCook", Georgia, serif;
+  --font-body: "Hanken Grotesk", system-ui, sans-serif;
   --font-mono: "JetBrains Mono", ui-monospace, monospace;
-  --font-pixel: "Silkscreen", "Courier New", monospace;
-  --font-hand: "Silkscreen", monospace;
-  --font-sign: "Pixelify Sans", monospace;
+  --font-hand: "Reenie Beanie", "Bradley Hand", cursive;
+  --font-sign: "Grenze Gotisch Variable", Georgia, serif;
 
   --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 :root {
-  /* escrow fill 0..1, written by the page; warms the lava glow */
+  /* escrow fill 0..1, written by the page; brightens the cauldron glow */
   --hearth: 0;
   color-scheme: dark;
 }
@@ -64,7 +74,7 @@
 @layer base {
   html {
     background-color: var(--color-night);
-    color: var(--color-star);
+    color: var(--color-bone);
     scrollbar-color: var(--color-panel-line) var(--color-night);
     overflow-anchor: none;
   }
@@ -73,19 +83,19 @@
     margin: 0;
     font-family: var(--font-body);
     background-color: var(--color-night);
-    color: var(--color-star);
+    color: var(--color-bone);
     -webkit-font-smoothing: antialiased;
     -webkit-tap-highlight-color: transparent;
-    caret-color: var(--color-ring);
+    caret-color: var(--color-pumpkin);
   }
 
   ::selection {
-    background: var(--color-ring);
+    background: var(--color-pumpkin);
     color: var(--color-night);
   }
 
   :focus-visible {
-    outline: 3px solid var(--color-ring-hot);
+    outline: 2px solid var(--color-pumpkin-hot);
     outline-offset: 3px;
   }
 
@@ -95,218 +105,265 @@
 }
 
 ::-webkit-scrollbar {
-  width: 12px;
-  height: 12px;
+  width: 10px;
+  height: 10px;
 }
 ::-webkit-scrollbar-track {
   background: var(--color-night);
 }
 ::-webkit-scrollbar-thumb {
   background: var(--color-panel-line);
-  border: 3px solid var(--color-night);
+  border: 2px solid var(--color-night);
+  border-radius: 999px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: var(--color-ring);
+  background: var(--color-pumpkin);
 }
 
 .tabular {
   font-variant-numeric: tabular-nums lining-nums;
 }
 
-/* Everything below is a component layer, so Tailwind utilities on an element still win. */
 @layer components {
 /* ───────── Voices ───────── */
 .display {
   font-family: var(--font-display);
   font-weight: 700;
-  line-height: 0.95;
-  letter-spacing: 0;
+  line-height: 0.92;
+  letter-spacing: -0.005em;
 }
-.pxl,
 .label {
-  font-family: var(--font-pixel);
-  font-weight: 400;
+  font-family: var(--font-body);
+  font-weight: 650;
+  font-size: 0.72rem;
   text-transform: uppercase;
-  letter-spacing: 0.04em;
+  letter-spacing: 0.16em;
 }
 .hand {
-  font-family: var(--font-pixel);
-  line-height: 1.1;
-}
-/* pixel letters cast a hard one-step shadow, like a game title */
-.px-title {
-  font-family: var(--font-display);
-  font-weight: 700;
-  line-height: 0.9;
-  text-shadow: 0.06em 0.06em 0 #0b0806;
+  font-family: var(--font-hand);
+  font-weight: 400;
+  line-height: 1;
 }
 
 /* ───────── The world ───────── */
-.sky {
+.night-sky {
   background:
-    radial-gradient(70% 40% at 50% 100%, color-mix(in oklab, var(--color-ring) calc(6% + var(--hearth) * 10%), transparent) 0%, transparent 70%),
-    var(--color-night);
+    radial-gradient(60% 45% at 50% 62%, color-mix(in oklab, var(--color-brew) calc(4% + var(--hearth) * 12%), transparent) 0%, transparent 70%),
+    radial-gradient(90% 60% at 80% 0%, #2a1a3d 0%, transparent 60%),
+    linear-gradient(#120c1a, var(--color-night) 70%);
 }
-/* cave stone, one 32px tile of blocks */
-.px-stone {
-  background-color: #1d1714;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='32' height='32' shape-rendering='crispEdges'%3E%3Crect width='32' height='32' fill='%231d1714'/%3E%3Crect x='0' y='0' width='15' height='15' fill='%23211a16'/%3E%3Crect x='16' y='16' width='16' height='16' fill='%23211a16'/%3E%3Crect x='4' y='4' width='4' height='2' fill='%23282019'/%3E%3Crect x='22' y='6' width='6' height='2' fill='%23181310'/%3E%3Crect x='8' y='22' width='6' height='2' fill='%23181310'/%3E%3Crect x='24' y='24' width='4' height='2' fill='%23282019'/%3E%3Crect x='0' y='15' width='32' height='1' fill='%23120e0c'/%3E%3Crect x='15' y='0' width='1' height='15' fill='%23120e0c'/%3E%3Crect x='0' y='31' width='32' height='1' fill='%23120e0c'/%3E%3Crect x='7' y='16' width='1' height='15' fill='%23120e0c'/%3E%3C/svg%3E");
-  background-size: 64px 64px;
-  image-rendering: pixelated;
-}
-.px-dirt {
-  background-color: var(--color-dirt);
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' shape-rendering='crispEdges'%3E%3Crect width='16' height='16' fill='%236b4a2f'/%3E%3Crect x='2' y='3' width='2' height='2' fill='%23573a23'/%3E%3Crect x='10' y='1' width='2' height='2' fill='%237d5838'/%3E%3Crect x='6' y='9' width='2' height='2' fill='%23573a23'/%3E%3Crect x='12' y='11' width='2' height='2' fill='%237d5838'/%3E%3Crect x='1' y='13' width='2' height='2' fill='%237d5838'/%3E%3C/svg%3E");
-  background-size: 48px 48px;
-  image-rendering: pixelated;
-}
-.px-grass {
+.fog {
   background:
-    linear-gradient(#78c24a 0 4px, var(--color-grass) 4px 12px, transparent 12px),
-    repeating-linear-gradient(90deg, var(--color-grass) 0 12px, transparent 12px 18px, var(--color-grass) 18px 24px, transparent 24px 36px) 0 12px / 100% 6px no-repeat;
+    radial-gradient(40% 60% at 20% 100%, rgba(169, 156, 184, 0.14), transparent 70%),
+    radial-gradient(45% 60% at 75% 100%, rgba(169, 156, 184, 0.12), transparent 70%);
 }
 
-/* ───────── Panels: square, bevelled, with a hard outline ───────── */
-.px-panel {
+/* ───────── Surfaces ───────── */
+.slab {
   position: relative;
-  background: var(--color-panel);
-  color: var(--color-star);
-  box-shadow:
-    0 0 0 4px #0b0806,
-    inset 4px 4px 0 rgba(255, 255, 255, 0.07),
-    inset -4px -4px 0 rgba(0, 0, 0, 0.32),
-    8px 8px 0 4px rgba(0, 0, 0, 0.45);
+  background: linear-gradient(180deg, #1f172b, var(--color-panel));
+  border: 1px solid var(--color-panel-line);
+  border-radius: 18px;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05), 0 30px 60px -30px rgba(0, 0, 0, 0.9);
 }
-.px-frame {
+/* a gravestone: rounded top, flat base */
+.stone {
   position: relative;
-  background: #0b0806;
-  padding: 6px;
-  box-shadow: 0 0 0 4px #3e332b, 10px 10px 0 4px rgba(0, 0, 0, 0.45);
-  image-rendering: pixelated;
+  background: linear-gradient(180deg, #2a2236 0%, #1d1727 100%);
+  border: 1px solid #3d3150;
+  border-radius: 999px 999px 10px 10px / 220px 220px 10px 10px;
+  box-shadow: inset 0 2px 0 rgba(255, 255, 255, 0.06), inset 0 -18px 30px -18px rgba(0, 0, 0, 0.6), 0 26px 40px -24px rgba(0, 0, 0, 0.9);
 }
-
-/* paper: the full-log drawer and lore signs */
+/* parchment: torn-edge page with a soft burn at the corners */
+.parch {
+  position: relative;
+  background:
+    radial-gradient(120% 90% at 50% 50%, transparent 60%, rgba(110, 70, 30, 0.22) 100%),
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0.35 0 0 0 0 0.24 0 0 0 0 0.12 0 0 0 0.09 0'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)'/%3E%3C/svg%3E"),
+    var(--color-parch);
+  color: var(--color-ink);
+  border-radius: 6px;
+  box-shadow: 0 30px 60px -28px rgba(0, 0, 0, 0.9);
+}
+/* compatibility: the shared log drawer uses .paper */
 .paper {
-  position: relative;
-  background-color: var(--color-paper);
-  color: var(--color-pen);
-  box-shadow: 0 0 0 4px #0b0806, inset -4px -4px 0 rgba(0, 0, 0, 0.12), 8px 8px 0 4px rgba(0, 0, 0, 0.45);
-}
-.sprockets {
+  background: var(--color-parch);
+  color: var(--color-ink);
 }
 
-/* ───────── Buttons: pixel keys that press down ───────── */
-.btn-ring,
+/* ───────── Buttons ───────── */
+.btn-pumpkin,
 .btn-ghost,
-.btn-pen,
+.btn-ink,
 .btn-coal {
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: 0.55rem;
-  font-family: var(--font-pixel);
-  font-weight: 400;
+  font-family: var(--font-body);
+  font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.03em;
-  border-radius: 0;
-  transition: transform 0.08s steps(2), box-shadow 0.08s steps(2), background-color 0.12s steps(2), color 0.12s steps(2);
+  letter-spacing: 0.1em;
+  border-radius: 999px;
+  transition: transform 0.25s var(--ease-out-expo), box-shadow 0.25s var(--ease-out-expo), background-color 0.2s, color 0.2s, border-color 0.2s;
 }
-.btn-ring,
+.btn-pumpkin,
 .btn-coal {
-  background: var(--color-ring);
-  color: #1a1412;
-  box-shadow: 0 0 0 3px #0b0806, inset 0 -5px 0 #c2370f, inset 0 3px 0 rgba(255, 255, 255, 0.45), 0 6px 0 3px #0b0806;
+  background: radial-gradient(120% 140% at 30% 20%, var(--color-pumpkin-hot), var(--color-pumpkin) 55%, #d4520a);
+  color: #1a0d05;
+  box-shadow: 0 0 0 1px rgba(255, 179, 71, 0.5), 0 14px 34px -12px rgba(255, 117, 24, 0.8);
 }
-.btn-ring:hover,
+.btn-pumpkin:hover,
 .btn-coal:hover {
-  background: var(--color-ring-hot);
+  transform: translateY(-2px);
+  box-shadow: 0 0 0 1px rgba(255, 179, 71, 0.8), 0 20px 44px -12px rgba(255, 117, 24, 0.95);
 }
-.btn-ring:active,
+.btn-pumpkin:active,
 .btn-coal:active {
-  transform: translateY(5px);
-  box-shadow: 0 0 0 3px #0b0806, inset 0 -2px 0 #c2370f, inset 0 3px 0 rgba(255, 255, 255, 0.45), 0 1px 0 3px #0b0806;
+  transform: translateY(1px);
 }
 .btn-ghost {
-  background: #3a302a;
-  color: var(--color-star);
-  box-shadow: 0 0 0 3px #0b0806, inset 0 -4px 0 #231c17, inset 0 3px 0 rgba(255, 255, 255, 0.12), 0 5px 0 3px #0b0806;
+  background: rgba(27, 20, 36, 0.6);
+  color: var(--color-bone);
+  border: 1px solid var(--color-panel-line);
 }
 .btn-ghost:hover {
-  background: #4b3f37;
-  color: var(--color-ring-hot);
+  border-color: var(--color-pumpkin);
+  color: var(--color-pumpkin-hot);
 }
-.btn-ghost:active {
-  transform: translateY(4px);
-  box-shadow: 0 0 0 3px #0b0806, inset 0 -2px 0 #231c17, 0 1px 0 3px #0b0806;
+.btn-ink {
+  color: var(--color-ink);
+  background: transparent;
+  border: 1.5px solid color-mix(in oklab, var(--color-ink) 60%, transparent);
 }
+.btn-ink:hover {
+  background: var(--color-ink);
+  color: var(--color-parch);
+}
+/* the shared log drawer still names its paper buttons .btn-pen */
 .btn-pen {
-  color: var(--color-pen);
-  background: var(--color-paper);
-  box-shadow: 0 0 0 3px var(--color-pen);
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  border-radius: 999px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--color-ink);
+  border: 1.5px solid color-mix(in oklab, var(--color-ink) 60%, transparent);
+  transition: background-color 0.2s, color 0.2s;
 }
 .btn-pen:hover {
-  background: var(--color-pen);
-  color: var(--color-paper);
+  background: var(--color-ink);
+  color: var(--color-parch);
 }
 
-/* ───────── Pixel motion (all of it stepped) ───────── */
+/* ───────── Motion (all gated) ───────── */
 @media (prefers-reduced-motion: no-preference) {
-  .px-flame {
-    transform-box: view-box;
-    animation: px-flick 0.6s steps(3) infinite alternate;
+  .flicker {
+    transform-box: fill-box;
+    transform-origin: 50% 100%;
+    animation: flicker 0.9s ease-in-out infinite alternate;
   }
-  .px-bubble {
-    animation: px-bubble 2.4s steps(8) infinite;
+  .flicker-b {
+    transform-box: fill-box;
+    transform-origin: 50% 100%;
+    animation: flicker 0.7s ease-in-out -0.3s infinite alternate;
   }
-  .px-lava-crust {
-    animation: px-crust 3.2s steps(8) infinite;
+  .bubble {
+    transform-box: fill-box;
+    animation: bubble 2.6s ease-in infinite;
   }
-  .px-hop {
-    animation: px-hop 0.5s steps(2) infinite alternate;
+  .steam {
+    animation: steam 5s ease-out infinite;
   }
-  .px-bob {
-    animation: px-hop 1.4s steps(2) infinite alternate;
+  .bat {
+    animation: bat-flap 0.35s steps(2) infinite alternate;
+    transform-box: fill-box;
+    transform-origin: 50% 50%;
   }
-  .px-sweat {
-    animation: px-sweat 1.6s steps(6) infinite;
+  .bat-path {
+    animation: bat-fly var(--dur, 18s) linear infinite;
+  }
+  .float {
+    animation: float 5s ease-in-out infinite alternate;
+  }
+  .tail {
+    transform-box: fill-box;
+    transform-origin: 0% 100%;
+    animation: tail 2.4s ease-in-out infinite alternate;
   }
   .reink {
-    animation: reink 0.35s steps(4) both;
+    animation: reink 0.6s var(--ease-out-expo) both;
+  }
+  .coin-drop {
+    transform-box: fill-box;
+    animation: coin-drop 1.8s ease-in infinite;
+    opacity: 0;
+  }
+  .ember {
+    animation: ember 3.2s ease-out infinite;
+    opacity: 0;
+  }
+  .running .bubble {
+    animation-duration: 1.1s;
   }
 }
-@keyframes px-flick {
-  0% { transform: scaleY(0.75); }
-  50% { transform: scaleY(1.1); }
-  100% { transform: scaleY(0.9); }
+@keyframes flicker {
+  0% { transform: scaleY(0.82) skewX(-3deg); opacity: 0.85; }
+  50% { transform: scaleY(1.08) skewX(2deg); opacity: 1; }
+  100% { transform: scaleY(0.94) skewX(-1deg); opacity: 0.92; }
 }
-@keyframes px-bubble {
-  0% { transform: translateY(0); opacity: 0; }
+@keyframes bubble {
+  0% { transform: translateY(6px) scale(0.4); opacity: 0; }
+  30% { opacity: 1; }
+  85% { transform: translateY(-10px) scale(1); opacity: 1; }
+  100% { transform: translateY(-12px) scale(1.25); opacity: 0; }
+}
+@keyframes steam {
+  0% { transform: translateY(0) scaleX(1); opacity: 0; }
+  20% { opacity: 0.5; }
+  100% { transform: translateY(-90px) scaleX(1.6); opacity: 0; }
+}
+@keyframes bat-flap {
+  from { transform: scaleY(1); }
+  to { transform: scaleY(0.35); }
+}
+@keyframes bat-fly {
+  0% { transform: translate(-10vw, 0); }
+  25% { transform: translate(25vw, -30px); }
+  50% { transform: translate(55vw, 10px); }
+  75% { transform: translate(85vw, -25px); }
+  100% { transform: translate(115vw, 0); }
+}
+@keyframes coin-drop {
+  0% { transform: translateY(-46px); opacity: 0; }
   20% { opacity: 1; }
-  80% { transform: translateY(-6px); opacity: 1; }
-  100% { transform: translateY(-8px); opacity: 0; }
+  80% { transform: translateY(18px); opacity: 1; }
+  100% { transform: translateY(24px); opacity: 0; }
 }
-@keyframes px-crust {
-  from { transform: translateX(0); }
-  to { transform: translateX(8px); }
+@keyframes ember {
+  0% { transform: translate(0, 0); opacity: 0; }
+  15% { opacity: 1; }
+  100% { transform: translate(var(--dx, 10px), -150px); opacity: 0; }
 }
-@keyframes px-hop {
+@keyframes float {
   from { transform: translateY(0); }
-  to { transform: translateY(-4px); }
+  to { transform: translateY(-10px); }
 }
-@keyframes px-sweat {
-  0% { transform: translateY(0); opacity: 0; }
-  20% { opacity: 1; }
-  100% { transform: translateY(8px); opacity: 0; }
+@keyframes tail {
+  from { transform: rotate(-6deg); }
+  to { transform: rotate(10deg); }
 }
 @keyframes reink {
-  0% { opacity: 0; transform: translateY(0.2em); }
-  100% { opacity: 1; transform: none; }
+  0% { opacity: 0; filter: blur(4px); transform: translateY(0.2em); }
+  100% { opacity: 1; filter: none; transform: none; }
 }
 
 /* ───────── Legacy operator-panel helpers (/memex) ───────── */
 .plaque {
-  background: var(--color-paper);
-  color: var(--color-pen);
+  background: var(--color-parch);
+  color: var(--color-ink);
 }
 .sign-lettering {
   font-family: var(--font-display);
