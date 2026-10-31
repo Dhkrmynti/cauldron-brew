@@ -27,9 +27,10 @@
 ## Signature pieces (`src/components/brew/`)
 - **CauldronScene**: SVG hill, moon, graves, pumpkins, fire, cauldron, Hex. Brew glow and steam follow the escrow fill; `toss()` flicks a coin into the brew (on load, on a loop while visible, on click, and every 1.8s while the bot is really running).
 - **BrewFlask**: the fee escrow as a potion flask; green when the next run is a trick, violet for a treat.
-- **RitualSequence**: five steps with a sticky stage that redraws per step.
+- **RitualSequence**: five tarot cards (I to V), one per step of a run, each with its own scene, text and live reading. Face-down at first, they turn over one by one as the row scrolls in; a swipeable row on phones.
 - **Grimoire**: tricks on parchment, each with a candle sized to the burn, plus the treat bag runs.
 - **HexWatch**: the bot's live status on a gravestone; Hex's eyes open wide while it works.
 - Finale: the green brew rises over the screen on desktop scroll.
+- **WalletButton** (header): connect through the engine's `connectWallet()` (switches to Robinhood Chain). Connected: address chip with a green dot; its panel shows ETH and $BREW balances (read from the Robinhood RPC), share of supply, explorer link, disconnect. Wrong network turns the chip pumpkin and switches on click. No injected wallet: a panel with MetaMask / Rabby links. Read-only, never asks to sign.
 
 All motion is gated behind `prefers-reduced-motion` with a complete still state.

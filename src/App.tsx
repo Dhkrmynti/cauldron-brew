@@ -17,6 +17,7 @@ import { RitualSequence } from './components/brew/RitualSequence';
 import { Grimoire } from './components/brew/Grimoire';
 import { HexWatch } from './components/brew/HexWatch';
 import { Bats } from './components/brew/Bats';
+import { WalletButton } from './components/brew/WalletButton';
 
 gsap.registerPlugin(ScrollTrigger, useGSAP);
 
@@ -256,6 +257,7 @@ export function App() {
                 </svg>
               </a>
             ) : null}
+            <WalletButton tokenAddress={config.tokenAddress} tokenSymbol={tokenSymbol} totalSupply={state.totalSupply} explorerUrl={EXPLORER_URL} />
             {config.tokenAddress ? (
               <button type="button" onClick={copyCA} className="btn-pumpkin hidden h-10 cursor-pointer px-4 text-[0.68rem] lg:inline-flex" title="Copy contract address">
                 {copiedCA ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}

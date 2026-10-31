@@ -175,9 +175,95 @@ function Stage({ step, trick }: { step: number; trick: boolean }) {
   );
 }
 
+
+const ROMAN = ['I', 'II', 'III', 'IV', 'V'];
+const pad = (i: number) => String(i + 1).padStart(2, '0');
+
+interface LayoutProps {
+  steps: Step[];
+  trick: boolean;
+}
+
+function Reading({ s, i, trick }: { s: Step; i: number; trick: boolean }) {
+  return (
+    <div className="inline-flex flex-wrap items-baseline gap-3 self-start border-t border-panel-line pt-3">
+      <span className="label text-bone-dim">{s.readingLabel}</span>
+      <span className={`tabular font-mono text-[1rem] ${i === 4 ? (trick ? 'text-brew' : 'text-treat') : 'text-bone'}`}>{s.reading}</span>
+    </div>
+  );
+}
+
+/** Five tarot cards, I to V, one per step of a run. They turn over one by one as the row scrolls into view. */
+function TarotLayout({ steps, trick }: LayoutProps) {
+  const ref = useRef<HTMLOListElement>(null);
+  const [turned, setTurned] = useState(0);
+
+  useGSAP(
+    () => {
+      if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+        setTurned(5);
+        return;
+      }
+      ScrollTrigger.create({
+        trigger: ref.current,
+        start: 'top 85%',
+        end: 'center 45%',
+        onUpdate: (self) => setTurned((prev) => Math.max(prev, Math.min(5, Math.ceil(self.progress * 5.2)))),
+        onLeave: () => setTurned(5),
+      });
+    },
+    { scope: ref },
+  );
+
+  const tilt = ['lg:-rotate-[5deg] lg:translate-y-8', 'lg:-rotate-[2.5deg] lg:translate-y-2', '', 'lg:rotate-[2.5deg] lg:translate-y-2', 'lg:rotate-[5deg] lg:translate-y-8'];
+
+  return (
+    <ol ref={ref} className="m-0 mt-14 flex list-none snap-x snap-mandatory gap-5 overflow-x-auto p-0 pb-10 lg:grid lg:grid-cols-5 lg:gap-4 lg:overflow-visible lg:pb-16">
+      {steps.map((s, i) => {
+        const up = i < turned;
+        return (
+          <li key={s.name} className={`w-[80%] shrink-0 snap-center [perspective:1400px] sm:w-[46%] lg:w-auto ${tilt[i]} transition-transform duration-500 hover:z-10 lg:hover:-translate-y-3 lg:hover:rotate-0`}>
+            <div className="relative h-full min-h-[34rem] transition-transform duration-[900ms] [transform-style:preserve-3d]" style={{ transform: up ? 'rotateY(0deg)' : 'rotateY(180deg)', transitionTimingFunction: 'cubic-bezier(0.16,1,0.3,1)', transitionDelay: `${(i % 5) * 60}ms` }}>
+              {/* the face */}
+              <div className="absolute inset-0 flex flex-col rounded-[16px] border border-[#6b5228] bg-[linear-gradient(180deg,#1f172b,#140f1b)] p-3 shadow-[0_30px_50px_-24px_rgba(0,0,0,0.95),inset_0_0_0_4px_#140f1b,inset_0_0_0_5px_rgba(255,179,71,0.35)] [backface-visibility:hidden]">
+                <div className="flex items-center justify-between px-2 pt-1">
+                  <span className="font-[Georgia,serif] text-[1.35rem] font-bold leading-none tracking-wider text-pumpkin-hot">{ROMAN[i]}</span>
+                  <span className="label text-[0.58rem] text-bone-dim">{pad(i)} / 05</span>
+                </div>
+                <div className="mt-2 aspect-[4/3] overflow-hidden rounded-[10px] border border-panel-line">
+                  <Stage step={i} trick={trick} />
+                </div>
+                <div className="flex flex-1 flex-col px-2 pb-2 pt-4">
+                  <h3 className="m-0 display text-[1.65rem] leading-[1] text-bone">{s.name}</h3>
+                  <p className="m-0 mt-3 text-[0.9rem] leading-relaxed text-bone/80">{s.body}</p>
+                  <div className="mt-auto pt-4">
+                    <Reading s={s} i={i} trick={trick} />
+                  </div>
+                </div>
+              </div>
+              {/* the back */}
+              <div className="absolute inset-0 flex items-center justify-center rounded-[16px] border border-[#6b5228] bg-[radial-gradient(circle_at_50%_45%,#3a1f5c,#1a1026_70%)] shadow-[0_30px_50px_-24px_rgba(0,0,0,0.95),inset_0_0_0_6px_#1a1026,inset_0_0_0_7px_rgba(255,179,71,0.4)] [backface-visibility:hidden] [transform:rotateY(180deg)]" aria-hidden="true">
+                <svg viewBox="0 0 120 180" className="h-[70%] w-[70%]">
+                  <circle cx="60" cy="90" r="44" fill="none" stroke="#ffb347" strokeOpacity="0.45" strokeWidth="1.2" />
+                  <circle cx="60" cy="90" r="36" fill="none" stroke="#ffb347" strokeOpacity="0.25" strokeWidth="1" strokeDasharray="2 4" />
+                  <path d="M60 46 L86 126 L18 76 H102 L34 126 Z" fill="none" stroke="#ffb347" strokeOpacity="0.3" strokeWidth="1" />
+                  <ellipse cx="48" cy="88" rx="7" ry="6" fill="#ff7518" />
+                  <ellipse cx="72" cy="88" rx="7" ry="6" fill="#ff7518" />
+                  <rect x="46.8" y="83" width="2.4" height="10" rx="1.2" fill="#1a0d05" />
+                  <rect x="70.8" y="83" width="2.4" height="10" rx="1.2" fill="#1a0d05" />
+                  <text x="60" y="166" textAnchor="middle" fontFamily="Georgia, serif" fontWeight="700" fontSize="16" fill="#ffb347" opacity="0.8">{ROMAN[i]}</text>
+                  <text x="60" y="26" textAnchor="middle" fontFamily="var(--font-display)" fontSize="13" fill="#ffb347" opacity="0.6">Cauldron</text>
+                </svg>
+              </div>
+            </div>
+          </li>
+        );
+      })}
+    </ol>
+  );
+}
+
 export function RitualSequence({ tokenSymbol, escrow, threshold, fill, claimedETH, routerName, nextCycle }: RitualSequenceProps) {
-  const rootRef = useRef<HTMLElement>(null);
-  const [step, setStep] = useState(0);
   const trick = nextCycle === 'burn';
 
   const steps: Step[] = [
@@ -218,54 +304,15 @@ export function RitualSequence({ tokenSymbol, escrow, threshold, fill, claimedET
     },
   ];
 
-  useGSAP(
-    () => {
-      gsap.utils.toArray<HTMLElement>('[data-step]', rootRef.current).forEach((el, i) => {
-        ScrollTrigger.create({ trigger: el, start: 'top 60%', end: 'bottom 60%', onToggle: (self) => self.isActive && setStep(i) });
-      });
-    },
-    { scope: rootRef },
-  );
-
   return (
-    <section ref={rootRef} id="ritual" aria-labelledby="ritual-title" className="relative px-4 pb-24 pt-28 sm:px-10 lg:px-16">
+    <section id="ritual" aria-labelledby="ritual-title" className="relative px-4 pb-24 pt-28 sm:px-10 lg:px-16">
       <div className="mx-auto max-w-[84rem]">
         <p className="m-0 label text-pumpkin">the ritual</p>
         <h2 id="ritual-title" className="m-0 mt-3 max-w-[16ch] display text-[clamp(2.8rem,6vw,5.2rem)] text-bone">
           One run, from fee to cauldron
         </h2>
 
-        <div className="mt-12 grid gap-10 lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)] lg:gap-16">
-          {/* the stage: sticky on every size */}
-          <div className="sticky top-[4.5rem] z-10 mx-auto aspect-[4/3] w-full max-w-[22rem] self-start overflow-hidden rounded-[18px] border border-panel-line shadow-[0_30px_60px_-30px_rgba(0,0,0,0.9),0_0_0_6px_rgba(12,9,16,0.9)] sm:top-24 sm:max-w-[30rem] lg:order-2 lg:top-[calc(50svh-min(19rem,30vw))] lg:max-w-none">
-            <Stage step={step} trick={trick} />
-            <p className="absolute left-4 top-3 m-0 flex items-baseline gap-2 text-bone" aria-hidden="true">
-              <span className="tabular font-mono text-[0.72rem] text-pumpkin">{String(step + 1).padStart(2, '0')}</span>
-              <span className="label text-[0.62rem]">{steps[step].name}</span>
-            </p>
-            <ol className="absolute bottom-3 left-4 m-0 flex list-none gap-1.5 p-0" aria-hidden="true">
-              {steps.map((s, i) => (
-                <li key={s.name} className={`h-1.5 w-8 rounded-full transition-colors duration-300 ${i <= step ? 'bg-pumpkin' : 'bg-panel-line'}`} />
-              ))}
-            </ol>
-          </div>
-
-          <ol className="m-0 list-none p-0 lg:order-1">
-            {steps.map((s, i) => (
-              <li key={s.name} data-step className={`flex min-h-[56svh] flex-col justify-center pt-24 transition-opacity duration-500 sm:pt-0 lg:min-h-[78svh] ${i === step ? 'opacity-100' : 'opacity-35'}`}>
-                <span className="tabular font-mono text-[0.9rem] text-pumpkin" aria-hidden="true">
-                  {String(i + 1).padStart(2, '0')} / 05
-                </span>
-                <h3 className="m-0 mt-2 display text-[clamp(2rem,3.2vw,2.8rem)] text-bone">{s.name}</h3>
-                <p className="m-0 mt-4 max-w-[44ch] text-[1.08rem] leading-relaxed text-bone/90">{s.body}</p>
-                <div className="mt-5 inline-flex flex-wrap items-baseline gap-3 self-start border-t border-panel-line pt-3">
-                  <span className="label text-bone-dim">{s.readingLabel}</span>
-                  <span className={`tabular font-mono text-[1rem] ${i === 4 ? (trick ? 'text-brew' : 'text-treat') : 'text-bone'}`}>{s.reading}</span>
-                </div>
-              </li>
-            ))}
-          </ol>
-        </div>
+        <TarotLayout steps={steps} trick={trick} />
       </div>
     </section>
   );
