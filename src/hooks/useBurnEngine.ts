@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import confetti from 'canvas-confetti';
-import { EnginePhase, FlywheelState, ActivityLog, MachineConfig, BurnLedgerEntry } from '../types';
+import { CycleType, EnginePhase, FlywheelState, ActivityLog, MachineConfig, BurnLedgerEntry } from '../types';
 import { PONS_V2_CONFIG } from '../contracts';
 import { sounds } from '../utils/audio';
 import { fetchOnChainEscrowBalance, fetchFullOnChainMetrics, fetchTokenCurve, fetchOnChainBurnLedger } from '../utils/web3';
@@ -99,6 +99,13 @@ const getInitialLedger = (): BurnLedgerEntry[] => {
   return [];
 };
 
+/** Turn order follows the cycle count: odd cycles burn at 0.01 ETH, even cycles keep at 0.02 ETH. */
+const cycleFields = (cycles: number) => {
+  const isNextBurn = (cycles + 1) % 2 === 1;
+  const threshold = isNextBurn ? 0.01 : 0.02;
+  return { nextCycleType: (isNextBurn ? 'burn' : 'keep') as CycleType, threshold };
+};
+
 const RANDOM_TX_HASH = () =>
   '0x' + Array.from({ length: 64 }, () => Math.floor(Math.random() * 16).toString(16)).join('');
 
@@ -176,6 +183,8 @@ export function useFlywheelEngine() {
   configRef.current = config;
 
   const isExecutingRef = useRef(false);
+  // The bot's own totals while it is online. It counts keep cycles too; the chain logs only show burns.
+  const botTotalsRef = useRef<{ cycles: number; claimedETH: number; retainedETH: number } | null>(null);
 
   // Token CA and creator wallet come from the bot, so whatever is saved in /memex
   // shows up for every visitor. Falls back to build-time env when the bot is offline.
@@ -301,18 +310,19 @@ export function useFlywheelEngine() {
 
         setState((prev) => {
           const escrow = metrics ? metrics.escrowBalanceETH : prev.currentEscrowBalanceETH;
-          const cycles = ledgerRes && ledgerRes.cycleCount > 0 ? ledgerRes.cycleCount : prev.cycleCount;
+          const bot = botTotalsRef.current;
+          const cycles = bot ? bot.cycles : ledgerRes && ledgerRes.cycleCount > 0 ? ledgerRes.cycleCount : prev.cycleCount;
           const nextCycleNum = cycles + 1;
-          const isNextBurn = nextCycleNum % 2 === 1;
-          const nextCycleType = isNextBurn ? 'burn' : 'keep';
-          const threshold = isNextBurn ? 0.01 : 0.02;
+          const { nextCycleType, threshold } = cycleFields(cycles);
           const isMigrated = metrics ? metrics.isGraduated : prev.isTokenMigrated;
           const router = metrics ? metrics.swapRouter : (isMigrated ? 'uniswap' : 'curve');
 
           const progress = Math.min(100, Math.round((escrow / threshold) * 100));
-          const totalClaimed = (metrics && metrics.totalFeesClaimedETH > 0)
+          const chainClaimed = (metrics && metrics.totalFeesClaimedETH > 0)
             ? metrics.totalFeesClaimedETH
             : (ledgerRes && ledgerRes.totalClaimedETH > 0 ? ledgerRes.totalClaimedETH : prev.totalFeesClaimedETH);
+          // the bot's fee totals restart at 0 with the process, so never let them lower the number
+          const totalClaimed = Math.max(chainClaimed, bot?.claimedETH ?? 0);
           const totalBurned = (metrics && metrics.tokensBurned > 0)
             ? metrics.tokensBurned
             : (ledgerRes && ledgerRes.totalBurned > 0 ? ledgerRes.totalBurned : prev.totalTokensBurned);
@@ -330,6 +340,7 @@ export function useFlywheelEngine() {
             swapRouter: router,
             totalFeesClaimedETH: totalClaimed,
             totalFeesClaimedUSD: totalClaimed * 2500,
+            totalFeesRetainedETH: Math.max(prev.totalFeesRetainedETH, bot?.retainedETH ?? 0),
             phaseProgress: prev.isWheelSpinning ? prev.phaseProgress : progress,
             totalTokensBurned: totalBurned,
             deadAddressBalance: totalBurned,
@@ -601,16 +612,35 @@ export function useFlywheelEngine() {
 
       try {
         const res = await fetch('/api/status');
+        if (!res.ok) botTotalsRef.current = null;
         if (res.ok && !isCancelled) {
           const json = await res.json();
           if (json.success && json.data) {
             const data = json.data;
             const isBusy = data.status === 'claiming' || data.status === 'buyback' || data.status === 'burning';
+            const botCycles = Number(data.totalCyclesExecuted);
+            const bot = Number.isFinite(botCycles)
+              ? {
+                  cycles: botCycles,
+                  claimedETH: parseFloat(data.totalFeesClaimedETH) || 0,
+                  retainedETH: parseFloat(data.totalFeesRetainedETH) || 0,
+                }
+              : null;
+            botTotalsRef.current = bot;
 
             setState((prev) => {
               if (isExecutingRef.current) return prev;
+              const { nextCycleType, threshold } = cycleFields(bot ? bot.cycles : prev.cycleCount);
               return {
                 ...prev,
+                ...(bot && {
+                  cycleCount: bot.cycles,
+                  nextCycleType,
+                  currentThresholdETH: threshold,
+                  claimThresholdETH: threshold,
+                  totalFeesClaimedETH: Math.max(prev.totalFeesClaimedETH, bot.claimedETH),
+                  totalFeesRetainedETH: Math.max(prev.totalFeesRetainedETH, bot.retainedETH),
+                }),
                 isWheelSpinning: isBusy,
                 currentPhase: isBusy ? data.status : prev.currentPhase,
                 lastActionText: isBusy
@@ -652,6 +682,7 @@ export function useFlywheelEngine() {
         }
       } catch (e) {
         // Fallback: On-chain RPC poller (syncOnChain) handles metrics when API is unreachable
+        botTotalsRef.current = null;
       }
     };
 

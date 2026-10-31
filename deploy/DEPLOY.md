@@ -24,14 +24,17 @@ Website membaca CA token dari bot (`/api/status`), jadi setelah launch cukup isi
 # user khusus (jangan jalankan bot sebagai root)
 sudo adduser cauldron && sudo usermod -aG sudo cauldron && su - cauldron
 
-# firewall: hanya SSH dan web. Port 5015 (bot) TIDAK dibuka ke internet.
-sudo ufw allow OpenSSH && sudo ufw allow 'Nginx Full' && sudo ufw enable
-
 # Node 22, git, nginx, certbot, PM2
 curl -fsSL https://deb.nodesource.com/setup_22.x | sudo -E bash -
-sudo apt-get install -y nodejs git nginx certbot python3-certbot-nginx
+sudo apt-get install -y nodejs git nginx certbot python3-certbot-nginx ufw
 sudo npm install -g pm2
 node -v   # harus v22.x
+
+# firewall (setelah nginx terpasang): hanya SSH dan web. Port 5015 (bot) TIDAK dibuka ke internet.
+sudo ufw allow OpenSSH
+sudo ufw allow 'Nginx Full'
+sudo ufw enable
+sudo ufw status   # harus "active", tanpa 5015
 ```
 
 ## 2. Ambil kode
@@ -122,6 +125,7 @@ Kalau `root` ada di home user, nginx butuh izin baca: `chmod o+x /home/cauldron 
 2. Buka `/memex`, masukkan Admin Secret, isi **Token Address** dengan CA $BREW, lalu Save. Isi juga Treasury kalau belum.
 3. Dalam beberapa detik situs menampilkan CA, angka live, dan grimoire. Bot berubah dari `STANDBY` ke aktif (`pm2 logs cauldron-bot`).
 4. Setelah ada trade, cek siklus pertama: claim → buy → burn ke `0x…dEaD`, dengan tx di explorer.
+5. Tanam CA di build sebagai cadangan: isi `VITE_TOKEN_ADDRESS` di `.env`, lalu `npm run build`. Tanpa ini, situs kehilangan CA kalau bot mati. Saat bot mati, papan Hex juga tidak akurat (siklus dan total fee datang dari bot), jadi pastikan bot selalu hidup: `pm2 status`.
 
 ## 10. Setelah domain dan akun X ada
 

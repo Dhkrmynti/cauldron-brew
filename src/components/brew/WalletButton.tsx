@@ -62,7 +62,7 @@ export function WalletButton({ tokenAddress, tokenSymbol, totalSupply, explorerU
         aria-haspopup={w.address || !w.hasWallet ? 'dialog' : undefined}
         aria-expanded={open}
         title={wrong ? 'Switch to Robinhood Chain' : w.address ? 'Your wallet' : 'Connect a wallet'}
-        className={`${wrong ? 'btn-pumpkin' : 'btn-ghost'} h-10 cursor-pointer gap-2 px-3 text-[0.68rem] disabled:cursor-wait disabled:opacity-70 sm:px-4`}
+        className={`${wrong ? 'btn-pumpkin' : 'btn-ghost'} h-10 cursor-pointer gap-2 whitespace-nowrap px-3 text-[0.68rem] disabled:cursor-wait disabled:opacity-70 sm:px-4`}
       >
         {wrong ? (
           <AlertTriangle className="h-4 w-4" />
