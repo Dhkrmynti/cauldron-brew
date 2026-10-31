@@ -10,6 +10,7 @@
  */
 
 import http from "http";
+import crypto from "crypto";
 import fs from "fs";
 import path from "path";
 import { ethers } from "ethers";
@@ -559,6 +560,24 @@ function sendJSON(res: http.ServerResponse, status: number, data: any) {
   res.end(JSON.stringify(data));
 }
 
+// Admin API: every change to the bot (token, treasury, key) needs the ADMIN_SECRET from .env,
+// sent as the x-admin-secret header. Without a long enough secret the admin API stays shut.
+const ADMIN_SECRET_MIN_LENGTH = 16;
+const adminSecret = () => (process.env.ADMIN_SECRET || "").trim();
+const adminEnabled = () => adminSecret().length >= ADMIN_SECRET_MIN_LENGTH;
+function isAdmin(req: http.IncomingMessage): boolean {
+  if (!adminEnabled()) return false;
+  const sent = req.headers["x-admin-secret"];
+  const given = crypto.createHash("sha256").update(String(Array.isArray(sent) ? sent[0] : sent || "")).digest();
+  const expected = crypto.createHash("sha256").update(adminSecret()).digest();
+  return crypto.timingSafeEqual(given, expected);
+}
+function rejectAdmin(res: http.ServerResponse) {
+  return adminEnabled()
+    ? sendJSON(res, 401, { success: false, error: "wrong or missing admin secret" })
+    : sendJSON(res, 503, { success: false, error: `admin API disabled: set ADMIN_SECRET (at least ${ADMIN_SECRET_MIN_LENGTH} characters) in .env and restart the bot` });
+}
+
 const server = http.createServer(async (req, res) => {
   if (req.method === "OPTIONS") {
     res.writeHead(204, {
@@ -596,8 +615,19 @@ const server = http.createServer(async (req, res) => {
     });
   }
 
-  // Endpoint 2: POST /api/config atau POST /api/admin/save
+  // Endpoint 2: GET /api/admin/check, so /memex can verify the admin secret before saving
+  if (req.method === "GET" && url === "/api/admin/check") {
+    if (!isAdmin(req)) return rejectAdmin(res);
+    return sendJSON(res, 200, { success: true, walletAddress: botState.walletAddress });
+  }
+
+  // Endpoint 3: POST /api/config atau POST /api/admin/save (admin secret required)
   if (req.method === "POST" && (url === "/api/config" || url === "/api/admin/save" || url === "/api/config/")) {
+    if (!isAdmin(req)) {
+      req.resume();
+      addLog("warn", `[CONFIG] Rejected an admin change without a valid secret from ${req.socket.remoteAddress || "unknown"}`);
+      return rejectAdmin(res);
+    }
     let body = "";
     req.on("data", (chunk) => {
       body += chunk;
@@ -675,6 +705,7 @@ server.listen(PORT, "0.0.0.0", () => {
   console.log(`BLAZE AUTONOMOUS BURN ENGINE & API SERVER ACTIVE`);
   console.log(`   Server Port      : ${PORT}`);
   console.log(`   Admin API Ready  : http://localhost:${PORT}/api/status`);
+  console.log(`   Admin changes    : ${adminEnabled() ? "protected by ADMIN_SECRET" : "DISABLED (set ADMIN_SECRET in .env)"}`);
   console.log(`   Operator Wallet  : ${botState.walletAddress || "Not ready"}`);
   console.log(`   Initial Status   : ${isValidAddress(currentConfig.tokenAddress) ? "ACTIVE" : "STANDBY (Awaiting CA from /memex)"}`);
   console.log("==========================================================");

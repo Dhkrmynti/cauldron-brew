@@ -3,6 +3,37 @@ import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
 import fs from 'fs'
 import path from 'path'
+import crypto from 'crypto'
+
+// Admin endpoints of the dev server need the same ADMIN_SECRET as the bot (x-admin-secret header).
+const ADMIN_SECRET_MIN_LENGTH = 16
+
+function readAdminSecret(): string {
+  if (process.env.ADMIN_SECRET) return process.env.ADMIN_SECRET.trim()
+  const envPath = path.resolve(process.cwd(), '.env')
+  if (!fs.existsSync(envPath)) return ''
+  const m = fs.readFileSync(envPath, 'utf-8').match(/^\s*ADMIN_SECRET\s*=\s*["']?([^"'\r\n]*)["']?/m)
+  return m ? m[1].trim() : ''
+}
+
+/** True when the request carries the right secret; otherwise answers 401/503 itself. */
+function requireAdmin(req: any, res: any): boolean {
+  const secret = readAdminSecret()
+  if (secret.length < ADMIN_SECRET_MIN_LENGTH) {
+    res.writeHead(503, { 'Content-Type': 'application/json' })
+    res.end(JSON.stringify({ success: false, error: `admin API disabled: set ADMIN_SECRET (at least ${ADMIN_SECRET_MIN_LENGTH} characters) in .env` }))
+    return false
+  }
+  const sent = req.headers['x-admin-secret']
+  const given = crypto.createHash('sha256').update(String(Array.isArray(sent) ? sent[0] : sent || '')).digest()
+  const expected = crypto.createHash('sha256').update(secret).digest()
+  if (!crypto.timingSafeEqual(given, expected)) {
+    res.writeHead(401, { 'Content-Type': 'application/json' })
+    res.end(JSON.stringify({ success: false, error: 'wrong or missing admin secret' }))
+    return false
+  }
+  return true
+}
 
 function adminSavePlugin() {
   return {
@@ -13,6 +44,7 @@ function adminSavePlugin() {
 
         // 1. GET /api/admin/config
         if (url === '/api/admin/config' && req.method === 'GET') {
+          if (!requireAdmin(req, res)) return
           try {
             const envPath = path.resolve(process.cwd(), '.env')
             let tokenAddress = ''
@@ -40,7 +72,8 @@ function adminSavePlugin() {
             }
 
             res.writeHead(200, { 'Content-Type': 'application/json' })
-            res.end(JSON.stringify({ success: true, tokenAddress, privateKey, treasuryAddress }))
+            // the key itself never leaves the server: the panel only learns whether one is set
+            res.end(JSON.stringify({ success: true, tokenAddress, hasPrivateKey: Boolean(privateKey), treasuryAddress }))
             return
           } catch (err: any) {
             res.writeHead(500, { 'Content-Type': 'application/json' })
@@ -51,6 +84,10 @@ function adminSavePlugin() {
 
         // 2. POST /api/admin/save
         if (url === '/api/admin/save' && req.method === 'POST') {
+          if (!requireAdmin(req, res)) {
+            req.resume()
+            return
+          }
           let body = ''
           req.on('data', (chunk: any) => {
             body += chunk

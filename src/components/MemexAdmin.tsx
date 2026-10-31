@@ -14,9 +14,21 @@ import {
   RefreshCw,
   Landmark,
   RotateCcw,
-  Trash2
+  Trash2,
+  Lock
 } from 'lucide-react';
 import { BrewMark } from './brew/BrewMark';
+
+/** The admin secret lives only for this browser tab; the bot and dev server check it on every change. */
+const ADMIN_SECRET_KEY = 'cauldron-admin-secret';
+
+/** Turns the admin API's answer into a message the operator can act on. */
+async function adminError(res: Response): Promise<string> {
+  if (res.status === 401) return 'wrong admin secret';
+  if (res.status === 503) return 'admin API disabled: set ADMIN_SECRET (16+ characters) in .env and restart';
+  const json = await res.json().catch(() => null);
+  return json?.error || `HTTP ${res.status}`;
+}
 
 interface MemexAdminProps {
   onBack?: () => void;
@@ -35,11 +47,59 @@ export function MemexAdmin({ onBack }: MemexAdminProps) {
   const [statusMessage, setStatusMessage] = useState<string>('');
   // Operator wallet the bot is currently running with (its key never leaves the server)
   const [botWallet, setBotWallet] = useState<string>('');
+  const [adminSecret, setAdminSecret] = useState<string>(() => {
+    try {
+      return sessionStorage.getItem(ADMIN_SECRET_KEY) || '';
+    } catch {
+      return '';
+    }
+  });
+  const [showSecret, setShowSecret] = useState<boolean>(false);
+  const [secretState, setSecretState] = useState<'unknown' | 'ok' | 'wrong' | 'disabled'>('unknown');
+  const [keyOnServer, setKeyOnServer] = useState<boolean>(false);
+
+  const adminHeaders = () => ({ 'Content-Type': 'application/json', 'x-admin-secret': adminSecret.trim() });
+
+  // Remember the secret for this tab only, and check it against the server as it is typed
+  useEffect(() => {
+    try {
+      if (adminSecret) sessionStorage.setItem(ADMIN_SECRET_KEY, adminSecret);
+      else sessionStorage.removeItem(ADMIN_SECRET_KEY);
+    } catch {}
+    if (!adminSecret.trim()) {
+      setSecretState('unknown');
+      return;
+    }
+    const id = window.setTimeout(async () => {
+      const headers = { 'x-admin-secret': adminSecret.trim() };
+      let state: typeof secretState = 'unknown';
+      // dev server first (.env / bot-config.json), then the bot itself
+      for (const url of ['/api/admin/config', '/api/admin/check']) {
+        try {
+          const res = await fetch(url, { headers });
+          if (res.ok) {
+            state = 'ok';
+            const json = await res.json().catch(() => null);
+            if (json?.hasPrivateKey) setKeyOnServer(true);
+            if (json?.tokenAddress) setTokenAddress((prev) => prev || json.tokenAddress);
+            if (json?.treasuryAddress) setTreasuryAddress((prev) => prev || json.treasuryAddress);
+            if (json?.walletAddress) setBotWallet(json.walletAddress);
+            break;
+          }
+          if (res.status === 401) state = 'wrong';
+          else if (res.status === 503 && state === 'unknown') state = 'disabled';
+        } catch {
+          // not running
+        }
+      }
+      setSecretState(state);
+    }, 400);
+    return () => window.clearTimeout(id);
+  }, [adminSecret]);
 
   // Load the current config from the bot; nothing is kept in browser storage
   useEffect(() => {
     const loadSavedConfig = async () => {
-      let loadedKey = '';
       let loadedToken = '';
       let loadedTreasury = '';
 
@@ -65,20 +125,7 @@ export function MemexAdmin({ onBack }: MemexAdminProps) {
         // bot might be offline
       }
 
-      // 2. Local dev server (.env / bot-config.json)
-      try {
-        const res = await fetch('/api/admin/config');
-        if (res.ok) {
-          const json = await res.json();
-          if (json.tokenAddress && !loadedToken) loadedToken = json.tokenAddress;
-          if (json.privateKey && !loadedKey) loadedKey = json.privateKey;
-          if (json.treasuryAddress && !loadedTreasury) loadedTreasury = json.treasuryAddress;
-        }
-      } catch (e) {
-        // server might not be active
-      }
-
-      if (loadedKey) setPrivateKey(loadedKey);
+      // (the dev server's .env values load once the admin secret is entered; the key itself never comes back)
       if (loadedToken) setTokenAddress(loadedToken);
       if (loadedTreasury) setTreasuryAddress(loadedTreasury);
     };
@@ -146,30 +193,42 @@ export function MemexAdmin({ onBack }: MemexAdminProps) {
         creatorAddress: cleanCreator || undefined,
       });
 
+      if (!adminSecret.trim()) {
+        throw new Error('enter the admin secret first');
+      }
+
       // 1. Local dev server: persist in .env and bot-config.json
       let savedToBackend = false;
+      let refused = '';
       try {
-        const res = await fetch('/api/admin/save', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: payload });
+        const res = await fetch('/api/admin/save', { method: 'POST', headers: adminHeaders(), body: payload });
         if (res.ok) savedToBackend = true;
+        else if (res.status === 401 || res.status === 503) refused = await adminError(res);
       } catch {
         // not running
       }
 
       // 2. The bot itself (production)
       try {
-        const res = await fetch('/api/config', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: payload });
+        const res = await fetch('/api/config', { method: 'POST', headers: adminHeaders(), body: payload });
         if (res.ok) {
           savedToBackend = true;
           const json = await res.json().catch(() => null);
           if (json?.walletAddress !== undefined) setBotWallet(json.walletAddress || '');
+        } else if (res.status === 401 || res.status === 503) {
+          refused = await adminError(res);
         }
       } catch {
         // bot might be offline
       }
 
+      if (refused) {
+        throw new Error(refused);
+      }
       if (!savedToBackend) {
         throw new Error('the bot is offline, nothing was saved');
       }
+      if (cleanKey) setKeyOnServer(true);
 
       // Every open page re-reads the token from the bot
       window.dispatchEvent(new Event('memex_config_updated'));
@@ -194,7 +253,7 @@ export function MemexAdmin({ onBack }: MemexAdminProps) {
     const body = JSON.stringify({ tokenAddress: '' });
     for (const url of ['/api/admin/save', '/api/config']) {
       try {
-        await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body });
+        await fetch(url, { method: 'POST', headers: adminHeaders(), body });
       } catch {}
     }
     window.dispatchEvent(new Event('memex_config_updated'));
@@ -244,7 +303,7 @@ export function MemexAdmin({ onBack }: MemexAdminProps) {
       try {
         await fetch('/api/admin/save', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: adminHeaders(),
           body: JSON.stringify({
             tokenAddress: '',
             privateKey: '',
@@ -257,7 +316,7 @@ export function MemexAdmin({ onBack }: MemexAdminProps) {
       try {
         await fetch('/api/config', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: adminHeaders(),
           body: JSON.stringify({
             tokenAddress: '',
             privateKey: '',
@@ -344,6 +403,49 @@ export function MemexAdmin({ onBack }: MemexAdminProps) {
             </div>
 
             <form onSubmit={handleSave} className="space-y-6 relative z-10">
+              {/* Field 0: Admin secret */}
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <label className={labelClass} htmlFor="admin-secret">
+                    <Lock className="w-4 h-4 text-ember" />
+                    Admin Secret
+                  </label>
+                  {secretState === 'ok' && (
+                    <span className={validBadge}>
+                      <CheckCircle2 className="w-3 h-3" />
+                      Unlocked
+                    </span>
+                  )}
+                </div>
+                <div className="relative">
+                  <input
+                    id="admin-secret"
+                    type={showSecret ? 'text' : 'password'}
+                    value={adminSecret}
+                    onChange={(e) => setAdminSecret(e.target.value)}
+                    placeholder="ADMIN_SECRET from the server's .env"
+                    className={`${inputClass} pr-11`}
+                    autoComplete="off"
+                    spellCheck="false"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowSecret(!showSecret)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-ash hover:text-hot transition-colors p-1"
+                    title={showSecret ? 'Hide' : 'Show'}
+                  >
+                    {showSecret ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
+                </div>
+                {secretState === 'wrong' ? (
+                  <p className={warnClass}>That secret is wrong. Nothing can be saved with it.</p>
+                ) : secretState === 'disabled' ? (
+                  <p className={warnClass}>The admin API is off: set ADMIN_SECRET (16+ characters) in the server&apos;s .env and restart the bot.</p>
+                ) : (
+                  <p className={hintClass}>Every change below needs it. Kept only in this tab.</p>
+                )}
+              </div>
+
               {/* Field 1: Private Key */}
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
@@ -396,9 +498,9 @@ export function MemexAdmin({ onBack }: MemexAdminProps) {
                   <p className={warnClass}>
                     Invalid private key format (must be 64 hex characters).
                   </p>
-                ) : botWallet ? (
+                ) : botWallet || keyOnServer ? (
                   <p className={hintClass}>
-                    The bot is running with wallet <span className="font-mono text-flame">{botWallet}</span>. Leave blank to keep it.
+                    {botWallet ? <>The bot is running with wallet <span className="font-mono text-flame">{botWallet}</span>.</> : <>A key is already set on the server.</>} Leave blank to keep it.
                   </p>
                 ) : (
                   <p className={hintClass}>

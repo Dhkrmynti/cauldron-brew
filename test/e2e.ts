@@ -31,6 +31,7 @@ const ESCROW_CODE = "0x5f3560e01c634e71d92d14601557475f5260205ff35b5f5f5f5f47335
 const MNEMONIC = "test test test test test test test test test test test junk";
 const dev = (i: number) => ethers.HDNodeWallet.fromPhrase(MNEMONIC, undefined, `m/44'/60'/0'/0/${i}`);
 const OPERATOR_KEY = dev(0).privateKey;
+const ADMIN_SECRET = "e2e-admin-secret-0123456789";
 
 const provider = new ethers.JsonRpcProvider(RPC, 4663, { staticNetwork: true, cacheTimeout: -1 });
 const T = (n: number) => ethers.parseUnits(String(n), 18);
@@ -110,7 +111,7 @@ async function main() {
   const devBag = (await token.balanceOf(operator.address)) as bigint;
   assert.ok(devBag >= DEV_BAG, "the dev buy landed");
 
-  const env = { RPC_URL: RPC, PORT: String(PORT), TOKEN_ADDRESS: TOKEN, TREASURY_ADDRESS: treasury, CREATOR_PRIVATE_KEY: OPERATOR_KEY, POLL_INTERVAL_SECONDS: "1" };
+  const env = { RPC_URL: RPC, PORT: String(PORT), TOKEN_ADDRESS: TOKEN, TREASURY_ADDRESS: treasury, CREATOR_PRIVATE_KEY: OPERATOR_KEY, POLL_INTERVAL_SECONDS: "1", ADMIN_SECRET };
   startEngine(env);
 
   console.log("\nStart-up");
@@ -121,12 +122,22 @@ async function main() {
   ok(!JSON.stringify(await status()).includes(OPERATOR_KEY.slice(2)), "the operator key is never served by /api/status");
 
   console.log("\nAdmin");
-  const r = await fetch(API + "/api/admin/save", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ treasuryAddress: accounts[7] }) });
-  const s1 = await status();
-  if (r.status < 300 && s1.treasuryAddress?.toLowerCase() === accounts[7].toLowerCase()) {
-    finding("anyone can change the treasury (and the key and token) through /api/admin/save with no secret: /memex is open by design");
-    await fetch(API + "/api/admin/save", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ treasuryAddress: treasury }) });
-  } else ok(true, "an unauthenticated save is refused");
+  const save = (url: string, body: object, secret?: string) =>
+    fetch(API + url, { method: "POST", headers: { "content-type": "application/json", ...(secret === undefined ? {} : { "x-admin-secret": secret }) }, body: JSON.stringify(body) });
+  const attacker = accounts[7];
+  const unchanged = async () => {
+    const s = await status();
+    return s.treasuryAddress?.toLowerCase() === treasury.toLowerCase() && s.tokenAddress?.toLowerCase() === TOKEN.toLowerCase() && s.walletAddress.toLowerCase() === operator.address.toLowerCase();
+  };
+  const hijack = { treasuryAddress: attacker, tokenAddress: attacker, privateKey: dev(7).privateKey };
+  ok((await save("/api/admin/save", hijack)).status === 401 && (await unchanged()), "a save with no admin secret is refused and changes nothing");
+  ok((await save("/api/config", hijack, "wrong-secret-wrong-secret")).status === 401 && (await unchanged()), "a save with the wrong secret is refused and changes nothing");
+  ok((await fetch(API + "/api/admin/check", { headers: { "x-admin-secret": "nope" } })).status === 401, "the secret check refuses a wrong secret");
+  ok((await fetch(API + "/api/admin/check", { headers: { "x-admin-secret": ADMIN_SECRET } })).status === 200, "the secret check accepts the right secret");
+  const okSave = await save("/api/admin/save", { treasuryAddress: accounts[6] }, ADMIN_SECRET);
+  ok(okSave.status === 200 && (await status()).treasuryAddress?.toLowerCase() === accounts[6].toLowerCase(), "the right secret can change the treasury");
+  await save("/api/admin/save", { treasuryAddress: treasury }, ADMIN_SECRET);
+  ok(await unchanged(), "the treasury is back for the cycle checks");
 
   console.log("\nBurn #1 (odd cycle)");
   const curveEth1 = await bal(CURVE);
@@ -182,6 +193,15 @@ async function main() {
   ok((await dead()) - dead3 === burned3 && (await status()).totalCyclesExecuted === 3, "a second restart after the run is done burns nothing more");
 
   await stopEngine();
+
+  console.log("\nAdmin API without ADMIN_SECRET");
+  const { ADMIN_SECRET: _drop, ...noSecret } = env;
+  startEngine({ ...noSecret, ADMIN_SECRET: "" });
+  await until("the bot to come back", () => status());
+  const off = await fetch(API + "/api/admin/save", { method: "POST", headers: { "content-type": "application/json", "x-admin-secret": "" }, body: JSON.stringify({ treasuryAddress: attacker }) });
+  ok(off.status === 503 && (await status()).treasuryAddress?.toLowerCase() === treasury.toLowerCase(), "with no ADMIN_SECRET set the admin API stays shut (503)");
+  await stopEngine();
+
   console.log(`\n${passed} checks passed, ${findings.length} findings.`);
   for (const f of findings) console.log(`  - ${f}`);
 }

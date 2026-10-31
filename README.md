@@ -52,6 +52,10 @@ VITE_RPC_URL="https://rpc.mainnet.chain.robinhood.com"
 
 # Server Daemon Wallet Private Key (for on-chain bot):
 CREATOR_PRIVATE_KEY=""
+
+# Required for /memex: every admin change must send this secret (16+ characters).
+# Generate one with: openssl rand -hex 24
+ADMIN_SECRET=""
 ```
 
 ### 3. Run Development Web Server
@@ -70,6 +74,7 @@ npm run bot
 
 - The frontend web application is strictly **read-only / public tracker**.
 - The `CREATOR_PRIVATE_KEY` variable is never exposed to the client-side bundle.
+- The admin API (`/api/admin/save`, `/api/config`, `/api/admin/config`) refuses every request without the `x-admin-secret` header matching `ADMIN_SECRET`, and stays shut when `ADMIN_SECRET` is unset. The private key is never sent back to the browser.
 - Tokens sent to `0x0...dEaD` are provably unrecoverable.
 
 ---
