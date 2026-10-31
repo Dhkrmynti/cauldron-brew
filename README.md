@@ -94,7 +94,7 @@ anvil --chain-id 4663 --port 8599          # Foundry
 E2E_RPC=http://127.0.0.1:8599 npm run test:e2e
 ```
 
-It checks the threshold, a burn run, a treat run, a crash right after a claim (no double claim, nothing stranded), and the admin secret (22 checks).
+It checks the threshold, a burn run, a treat run, a crash right after a claim (no double claim, nothing stranded), slippage, the fee sweep, and the admin secret (26 checks).
 
 ## Project layout
 
