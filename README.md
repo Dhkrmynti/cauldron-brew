@@ -45,6 +45,10 @@ The code is ready; the token is **not launched yet**. Before going live:
 
 RPC: `https://rpc.mainnet.chain.robinhood.com` · Explorer: `https://explorer.mainnet.chain.robinhood.com`
 
+## Deploy
+
+Step-by-step VPS guide (PM2 for the bot, nginx for the site): [deploy/DEPLOY.md](deploy/DEPLOY.md).
+
 ## Quick start
 
 ```bash
